@@ -70,48 +70,67 @@ function getShortName(string $fullname){
 function getGenderFromName($fullname){
     $gender=getPartsFromFullname($fullname);
     $countGender=0;
-    
+        
     if (mb_substr($gender['patronomyc'],-3,3)=='вна')
     {$countGender -= 1;}
     else if (mb_substr($gender['patronomyc'],-2,2)=='ич')
     {$countGender += 1;}
-    
+        
     if (mb_substr($gender['name'],-1,1)=='а')
     {$countGender -= 1;}
     else if (mb_substr($gender['name'],-1,1)=='й'||'ч')
     {$countGender += 1;}
-        
+            
     if (mb_substr($gender['surname'],-2,2)=='ва')
     {$countGender -= 1;}
     else if (mb_substr($gender['surname'],-1,1)=='в')
     {$countGender += 1;}
-    
+        
     switch ($countGender){
-        case 0:
+        case $countGender==0:
             return 'Неопределённый пол';
-            break;
-        case $countGender>1:
+                
+        case $countGender<=-1:
+            return 'Женский пол';   
+                
+        case $countGender>=1:
             return 'Мужской пол';
-            break;
-        case $countGender<1:
-            return 'Женский пол';
-            break;}
+        }
 }//функция определения пола
+    
 
-function getGenderDescription($example_persons_array){
-    $sumMans=array_filter($example_persons_array,function($filtered){
-        return getGenderFromName($filtered(['fullname'])=='Мужской пол');
-    });
-    $sumWomans=array_filter($example_persons_array,function($filtered){
-        return getGenderFromName($filtered(['fullname'])=='Женский пол');
-    });
-    $sumOthers=array_filter($example_persons_array,function($filtered){
-        return getGenderFromName($filtered(['fullname'])=='Неопределённый пол');
-    });
-    $sumAll=count($example_persons_array);
-    $mansPercent=round(count($sumMans)/$sumAll*100, 1);
-    $womansPercent=round(count($sumWomans)/$sumAll*100, 1);
-    $othersPercent=round(count($sumOthers)/$sumAll*100, 1);
+
+function getGenderDescription($array){
+	function filteredMan($array) {
+		if (getGenderFromName($array['fullname']) == 'Мужской пол'){
+			return true;
+			} else {return false;}
+		}
+    $Mans=array_filter($array,'filteredMan');
+    
+	function filteredWoman($array) {
+		if (getGenderFromName($array['fullname']) == 'Женский пол'){
+			return true;
+			}else {return false;}
+		}
+    $Womans=array_filter($array,'filteredWoman');
+   
+    
+   function filteredUndefined($array) {
+		if (getGenderFromName($array['fullname']) == 'Неопределённый пол'){
+			return true;
+			}else {return false;}
+		}
+    $Undefined=array_filter($array,'filteredUndefined');
+    
+    $sumMans = count($Mans);
+    $sumWomans = count($Womans);
+    $sumUndefined = count($Undefined);
+
+    $sumAll=count($array);
+    $mansPercent=round($sumMans/$sumAll*100, 1);
+    $womansPercent=round($sumWomans/$sumAll*100, 1);
+    $othersPercent=round($sumUndefined/$sumAll*100, 1);
     $message=<<<HEREDOCTEXT
     Гендерный состав аудитории:
     Мужчины - {$mansPercent}%
@@ -119,28 +138,29 @@ function getGenderDescription($example_persons_array){
     Не удалось определить - {$othersPercent}%
 HEREDOCTEXT;
     return ($message);
-}
-//Используйте функцию фильтрации элементов массива, функцию подсчета элементов массива, функцию getGenderFromName, округление.
+    }
+// функцию определения партнёра.
 
 function getPerfectPartner($surname,$name,$patronomyc,$array){
     $SNP=getFullnameFromParts($surname,$name,$patronomyc);
     $SNPsex=getGenderFromName($SNP);
     $partner = $array[array_rand($array)]['fullname'];
-    do {
-        $partner = $array[array_rand($array)]['fullname'];
-    } while (getGenderFromName ($partner) == 'Мужской пол'&&'Неопределённый пол');
-     
+    if ((getGenderFromName($partner) == $SNPsex)||($partner==$SNP)){
+    	do {
+        	$partner = $array[array_rand($array)]['fullname'];
+    	} while (getGenderFromName($partner) != $SNPsex||$partner!=$SNP);
+    }
     $sovmestimost=round(rand(50,100),2);
     $result = getShortName($SNP).' + '.getShortName($partner);
     return <<<NOWDOCTEXT
         $result
         'Идеально на $sovmestimost %'
-NOWDOCTEXT  ;
+NOWDOCTEXT;
 }//функция определения пары
 
 print_r(getPartsFromFullname('петров иван сергеевич'));
 print_r(getFullnameFromParts('давыдов','роман','витальевич'));
 print_r(getShortname('бронштейн мирослав олегович'));
-print_r(getGenderFromName('яковлева ирина петровна'));
-print_r(getGenderDescription($example_persons_array));
+print_r(getGenderFromName('Быстрая Юлия Сергеевна'));
+print_r(getGenderDescription($example_persons_array1));
 print_r(getPerfectPartner('николаев','игнат','романович',$example_persons_array1));
